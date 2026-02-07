@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAMP Template Manager</title>
+    <!-- React and ReactDOM UMD builds (globals: React, ReactDOM) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone to transpile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            --samp-orange: #FF4500;
+            --samp-orange-grad: linear-gradient(180deg, #ff5e00 0%, #cc3700 100%);
+            --samp-dark: rgba(20, 20, 20, 0.95);
+            --samp-list-bg: rgba(40, 40, 40, 0.8);
+            --samp-text: #ffffff;
+            --samp-highlight: #FFD700;
+            --samp-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            background: #1a1a1a;
+        }
+
+        #root {
+            height: 100%;
+            width: 100%;
+        }
+
+        .app-root {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .game-background {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .game-world {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #2c3e50, #000000); 
+            filter: blur(2px);
+        }
+
+        .snow-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(4px 4px at 10% 10%, white 50%, transparent 55%),
+                            radial-gradient(4px 4px at 20% 40%, white 50%, transparent 55%),
+                            radial-gradient(4px 4px at 50% 50%, white 50%, transparent 55%),
+                            radial-gradient(4px 4px at 80% 20%, white 50%, transparent 55%);
+            background-size: 400px 400px;
+            opacity: 0.2;
+            animation: snowfall 10s linear infinite;
+        }
+
+        @keyframes snowfall {
+            from { background-position: 0 0; }
+            to { background-position: 0 400px; }
+        }
+
+        .samp-dialog-wrapper {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .samp-dialog {
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .dialog-header {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--samp-highlight);
+            text-shadow: 1px 1px 2px #000;
+            margin-bottom: 15px;
+            padding-left: 10px;
+        }
+
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            padding: 5px;
+            max-height: 50vh;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(30,30,30,0.6) 100%);
+            padding: 12px 16px;
+            border-radius: 6px;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #fff;
+        }
+
+        .list-item:hover {
+            background: linear-gradient(90deg, rgba(50,50,50,0.9) 0%, rgba(60,60,60,0.7) 100%);
+        }
+
+        .list-item.selected {
+            border-left-color: var(--samp-orange);
+            background: linear-gradient(90deg, rgba(60,20,0,0.9) 0%, rgba(40,40,40,0.7) 100%);
+        }
+
+        .list-index {
+            font-weight: bold;
+            color: var(--samp-highlight);
+            margin-right: 12px;
+            font-size: 1.1rem;
+            width: 25px;
+        }
+
+        .list-content { flex: 1; }
+        .list-label { font-size: 1rem; font-weight: 600; }
+        .list-sublabel { font-size: 0.8rem; color: #ccc; margin-top: 2px; }
+
+        .form-container {
+            background: rgba(0,0,0,0.6);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { color: var(--samp-highlight); font-size: 0.9rem; font-weight: 700; }
+
+        .samp-input {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--samp-border);
+            padding: 10px;
+            color: white;
+            font-size: 1rem;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .level-stepper {
+            display: flex;
+            align-items: center;
+            background: rgba(0,0,0,0.7);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--samp-border);
+        }
+
+        .level-stepper button {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .level-stepper span { flex: 1; text-align: center; font-weight: bold; font-size: 1.2rem; color: #fff; }
+
+        .dialog-footer {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 14px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            color: white;
+            text-transform: uppercase;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .action-btn.primary { background: var(--samp-orange-grad); border: 1px solid #ff4500; }
+        .action-btn.secondary { background: transparent; border: 2px solid var(--samp-orange); }
+        .action-btn.danger { background: linear-gradient(180deg, #d32f2f 0%, #b71c1c 100%); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--samp-orange); border-radius: 3px; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react/": "https://esm.sh/react@^19.2.4/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Destructure from global React (loaded via UMD script)
+        const { useState, Fragment } = React;
+
+        const ALL_COMMANDS = [
+            { id: 'kick', name: '/kick', minLevel: 1 },
+            { id: 'mute', name: '/mute', minLevel: 1 },
+            { id: 'jail', name: '/jail', minLevel: 1 },
+            { id: 'slap', name: '/slap', minLevel: 1 },
+            { id: 'warn', name: '/warn', minLevel: 2 },
+            { id: 'ban', name: '/ban', minLevel: 2 },
+            { id: 'unban', name: '/unban', minLevel: 3 },
+            { id: 'gethere', name: '/gethere', minLevel: 3 },
+            { id: 'sethp', name: '/sethp', minLevel: 3 },
+            { id: 'makeleader', name: '/makeleader', minLevel: 4 },
+            { id: 'setadmin', name: '/setadmin', minLevel: 5 },
+        ];
+
+        const INITIAL_TEMPLATES = [
+            { id: 1, name: 'Младший Модератор', accessLevel: 1, commands: ['kick', 'mute', 'jail'] },
+            { id: 2, name: 'Администратор', accessLevel: 3, commands: ['kick', 'mute', 'jail', 'warn', 'ban', 'gethere'] },
+        ];
+
+        function App() {
+            const [screen, setScreen] = useState('MAIN_MENU');
+            const [templates, setTemplates] = useState(INITIAL_TEMPLATES);
+            const [draft, setDraft] = useState({ id: 0, name: '', accessLevel: 1, commands: [] });
+            const [selectedId, setSelectedId] = useState(null);
+
+            const handleLevelChange = (lvl, auto) => {
+                let cmds = draft.commands;
+                if (auto) cmds = ALL_COMMANDS.filter(c => c.minLevel <= lvl).map(c => c.id);
+                setDraft({ ...draft, accessLevel: lvl, commands: cmds });
+            };
+
+            const toggleCommand = (id) => {
+                const exists = draft.commands.includes(id);
+                setDraft({ ...draft, commands: exists ? draft.commands.filter(c => c !== id) : [...draft.commands, id] });
+            };
+
+            const save = () => {
+                if (!draft.name.trim()) return alert("Введите название!");
+                if (selectedId) {
+                    setTemplates(templates.map(t => t.id === selectedId ? draft : t));
+                } else {
+                    setTemplates([...templates, { ...draft, id: Date.now() }]);
+                }
+                setScreen('MAIN_MENU');
+            };
+
+            const copy = () => {
+                const t = templates.find(x => x.id === selectedId);
+                if (t) {
+                    const newT = { ...t, id: Date.now(), name: `${t.name}_copy` };
+                    setTemplates([...templates, newT]);
+                    setScreen('EDIT_LIST');
+                }
+            };
+
+            const remove = () => {
+                setTemplates(templates.filter(t => t.id !== selectedId));
+                setScreen('MAIN_MENU');
+            };
+
+            return (
+                <div className="app-root">
+                    <div className="game-background">
+                        <div className="game-world"></div>
+                        <div className="snow-overlay"></div>
+                    </div>
+                    
+                    <div className="samp-dialog-wrapper">
+                        <div className="samp-dialog">
+                            {screen === 'MAIN_MENU' && (
+                                <Fragment>
+                                    <div className="dialog-header">Управление шаблонами</div>
+                                    <div className="list-container">
+                                        <div className="list-item" onClick={() => { 
+                                            setDraft({ id: 0, name: '', accessLevel: 1, commands: ALL_COMMANDS.filter(c => c.minLevel <= 1).map(c => c.id) });
+                                            setSelectedId(null);
+                                            setScreen('CREATE_FORM');
+                                        }}>
+                                            <div className="list-index">1.</div>
+                                            <div className="list-content"><div className="list-label">Создание шаблона</div></div>
+                                        </div>
+                                        <div className="list-item" onClick={() => setScreen('EDIT_LIST')}>
+                                            <div className="list-index">2.</div>
+                                            <div className="list-content"><div className="list-label">Редактирование шаблона</div></div>
+                                        </div>
+                                        <div className="list-item" onClick={() => setScreen('COPY_LIST')}>
+                                            <div className="list-index">3.</div>
+                                            <div className="list-content"><div className="list-label">Копирование шаблона</div></div>
+                                        </div>
+                                        <div className="list-item" onClick={() => setScreen('DELETE_LIST')}>
+                                            <div className="list-index">4.</div>
+                                            <div className="list-content"><div className="list-label">Удаление шаблона</div></div>
+                                        </div>
+                                    </div>
+                                    <div className="dialog-footer">
+                                        <button className="action-btn secondary" onClick={() => {}}>Закрыть</button>
+                                    </div>
+                                </Fragment>
+                            )}
+
+                            {(screen === 'EDIT_LIST' || screen === 'COPY_LIST' || screen === 'DELETE_LIST') && (
+                                <Fragment>
+                                    <div className="dialog-header">Выбор шаблона</div>
+                                    <div className="list-container">
+                                        {templates.map((t, i) => (
+                                            <div key={t.id} className={`list-item ${selectedId === t.id ? 'selected' : ''}`} onClick={() => setSelectedId(t.id)}>
+                                                <div className="list-index">{i+1}.</div>
+                                                <div className="list-content">
+                                                    <div className="list-label">{t.name}</div>
+                                                    <div className="list-sublabel">Lvl: {t.accessLevel} | Cmds: {t.commands.length}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="dialog-footer">
+                                        <button className={`action-btn ${screen === 'DELETE_LIST' ? 'danger' : 'primary'}`} onClick={() => {
+                                            if (!selectedId) return;
+                                            if (screen === 'EDIT_LIST') { setDraft(templates.find(x => x.id === selectedId)); setScreen('EDIT_FORM'); }
+                                            else if (screen === 'COPY_LIST') copy();
+                                            else remove();
+                                        }}>
+                                            {screen === 'DELETE_LIST' ? 'Удалить' : 'Выбрать'}
+                                        </button>
+                                        <button className="action-btn secondary" onClick={() => setScreen('MAIN_MENU')}>Назад</button>
+                                    </div>
+                                </Fragment>
+                            )}
+
+                            {(screen === 'CREATE_FORM' || screen === 'EDIT_FORM') && (
+                                <Fragment>
+                                    <div className="dialog-header">{screen === 'EDIT_FORM' ? 'Редактирование' : 'Создание'}</div>
+                                    <div className="form-container">
+                                        <div className="form-group">
+                                            <label>Название:</label>
+                                            <input className="samp-input" value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} placeholder="Название..." />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Уровень доступа (1-12):</label>
+                                            <div className="level-stepper">
+                                                <button onClick={() => draft.accessLevel > 1 && handleLevelChange(draft.accessLevel - 1, screen === 'CREATE_FORM')}>&lt;</button>
+                                                <span>{draft.accessLevel}</span>
+                                                <button onClick={() => draft.accessLevel < 12 && handleLevelChange(draft.accessLevel + 1, screen === 'CREATE_FORM')}>&gt;</button>
+                                            </div>
+                                        </div>
+                                        <div className="list-item" onClick={() => setScreen('VIEW_COMMANDS')}>
+                                            <div className="list-index">1.</div>
+                                            <div className="list-content"><div className="list-label">Просмотр команд ({draft.commands.length})</div></div>
+                                        </div>
+                                        <div className="list-item" onClick={() => setScreen('ADD_COMMANDS')}>
+                                            <div className="list-index">2.</div>
+                                            <div className="list-content"><div className="list-label">Добавить команду</div></div>
+                                        </div>
+                                    </div>
+                                    <div className="dialog-footer">
+                                        <button className="action-btn primary" onClick={save}>Сохранить</button>
+                                        <button className="action-btn secondary" onClick={() => setScreen('MAIN_MENU')}>Назад</button>
+                                    </div>
+                                </Fragment>
+                            )}
+
+                            {screen === 'VIEW_COMMANDS' && (
+                                <Fragment>
+                                    <div className="dialog-header">Команды в шаблоне</div>
+                                    <div className="list-container">
+                                        {draft.commands.map((cid, i) => (
+                                            <div key={cid} className="list-item" onClick={() => toggleCommand(cid)}>
+                                                <div className="list-index">{i+1}.</div>
+                                                <div className="list-content"><div className="list-label">{ALL_COMMANDS.find(x => x.id === cid)?.name || cid}</div></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="dialog-footer">
+                                        <button className="action-btn secondary" onClick={() => setScreen(selectedId ? 'EDIT_FORM' : 'CREATE_FORM')}>Назад</button>
+                                    </div>
+                                </Fragment>
+                            )}
+
+                            {screen === 'ADD_COMMANDS' && (
+                                <Fragment>
+                                    <div className="dialog-header">Доступные команды</div>
+                                    <div className="list-container">
+                                        {ALL_COMMANDS.filter(c => !draft.commands.includes(c.id)).map((c, i) => (
+                                            <div key={c.id} className="list-item" onClick={() => toggleCommand(c.id)}>
+                                                <div className="list-index">{i+1}.</div>
+                                                <div className="list-content"><div className="list-label">{c.name} (Lvl {c.minLevel})</div></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="dialog-footer">
+                                        <button className="action-btn secondary" onClick={() => setScreen(selectedId ? 'EDIT_FORM' : 'CREATE_FORM')}>Назад</button>
+                                    </div>
+                                </Fragment>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
