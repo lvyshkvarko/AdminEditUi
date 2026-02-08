@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SAMP Template Manager</title>
-    <!-- React and ReactDOM UMD builds (globals: React, ReactDOM) -->
+    <!-- React and ReactDOM UMD builds -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel Standalone to transpile JSX in the browser -->
+    <!-- Babel Standalone for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
@@ -20,6 +20,8 @@
             --samp-text: #ffffff;
             --samp-highlight: #FFD700;
             --samp-border: rgba(255, 255, 255, 0.1);
+            --samp-green: #00FF00;
+            --samp-grey: #888888;
         }
 
         body, html {
@@ -142,8 +144,26 @@
         }
 
         .list-content { flex: 1; }
-        .list-label { font-size: 1rem; font-weight: 600; }
+        .list-label { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .list-sublabel { font-size: 0.8rem; color: #ccc; margin-top: 2px; }
+
+        .points-tag {
+            background: var(--samp-orange);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-left: auto;
+        }
+
+        .indicator {
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+        .indicator-plus { color: var(--samp-highlight); }
+        .indicator-minus { color: var(--samp-grey); }
 
         .form-container {
             background: rgba(0,0,0,0.6);
@@ -153,6 +173,16 @@
             flex-direction: column;
             gap: 15px;
             margin-bottom: 15px;
+            overflow-y: auto;
+        }
+
+        .form-section-title {
+            color: var(--samp-highlight);
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--samp-border);
+            padding-bottom: 5px;
+            margin-top: 10px;
         }
 
         .form-group { display: flex; flex-direction: column; gap: 6px; }
@@ -166,6 +196,12 @@
             font-size: 1rem;
             border-radius: 4px;
             outline: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .samp-input:focus {
+            border-color: var(--samp-orange);
         }
 
         .level-stepper {
@@ -213,14 +249,99 @@
         .action-btn.secondary { background: transparent; border: 2px solid var(--samp-orange); }
         .action-btn.danger { background: linear-gradient(180deg, #d32f2f 0%, #b71c1c 100%); }
 
+        /* === Confirmation Dialog Style === */
+        .confirm-dialog {
+            background: rgba(30, 30, 30, 0.98);
+            border-radius: 20px;
+            padding: 35px 40px;
+            width: 90%;
+            max-width: 650px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Orange glow effect on the right */
+        .confirm-dialog::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 250px; 
+            height: 100%;
+            background: radial-gradient(circle at center right, rgba(255, 69, 0, 0.45) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .confirm-header {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 2;
+            text-align: left;
+        }
+
+        .confirm-body {
+            font-size: 1.15rem;
+            color: #eeeeee;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+            text-align: left;
+        }
+
+        .confirm-footer {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .confirm-btn {
+            flex: 1;
+            padding: 14px 0;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-btn.yes {
+            background: linear-gradient(to right, #ff5e00, #ff2a00);
+            box-shadow: 0 5px 20px rgba(255, 69, 0, 0.4);
+        }
+
+        .confirm-btn.no {
+            background: transparent;
+            border: 2px solid #b34e06;
+            color: #fff;
+        }
+
+        .confirm-btn:active {
+            transform: scale(0.96);
+        }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--samp-orange); border-radius: 3px; }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.4",
-    "react/": "https://esm.sh/react@^19.2.4/"
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4"
   }
 }
 </script>
@@ -230,7 +351,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // Destructure from global React (loaded via UMD script)
         const { useState, Fragment } = React;
 
         const ALL_COMMANDS = [
@@ -248,15 +368,36 @@
         ];
 
         const INITIAL_TEMPLATES = [
-            { id: 1, name: 'Младший Модератор', accessLevel: 1, commands: ['kick', 'mute', 'jail'] },
-            { id: 2, name: 'Администратор', accessLevel: 3, commands: ['kick', 'mute', 'jail', 'warn', 'ban', 'gethere'] },
+            { id: 1, name: 'Младший Модератор', accessLevel: 1, commands: ['kick', 'mute', 'jail'], points: 50, reports: 10, time: 60, x2Start: '01.01.2025', x2End: '10.01.2025', lastEditedDate: '01.02.2026', lastEditedBy: 'Ivan_Ivanov' },
+            { id: 2, name: 'Администратор', accessLevel: 3, commands: ['kick', 'mute', 'jail', 'warn', 'ban', 'gethere'], points: 150, reports: 30, time: 120, x2Start: '', x2End: '', lastEditedDate: '01.02.2026', lastEditedBy: 'Ivan_Ivanov' },
         ];
+
+        const EMPTY_DRAFT = { 
+            id: 0, 
+            name: '', 
+            accessLevel: 1, 
+            commands: [], 
+            points: 0, 
+            reports: 0, 
+            time: 0, 
+            x2Start: '', 
+            x2End: '',
+            lastEditedDate: '-',
+            lastEditedBy: '-'
+        };
 
         function App() {
             const [screen, setScreen] = useState('MAIN_MENU');
             const [templates, setTemplates] = useState(INITIAL_TEMPLATES);
-            const [draft, setDraft] = useState({ id: 0, name: '', accessLevel: 1, commands: [] });
+            const [draft, setDraft] = useState(EMPTY_DRAFT);
             const [selectedId, setSelectedId] = useState(null);
+            
+            // Состояние подтверждения удаления и сохранения
+            const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+            const [isConfirmingSave, setIsConfirmingSave] = useState(false);
+            
+            // Вспомогательное состояние для экрана ввода
+            const [inputContext, setInputContext] = useState({ field: '', value: '' });
 
             const handleLevelChange = (lvl, auto) => {
                 let cmds = draft.commands;
@@ -269,28 +410,76 @@
                 setDraft({ ...draft, commands: exists ? draft.commands.filter(c => c !== id) : [...draft.commands, id] });
             };
 
-            const save = () => {
+            const initiateSave = () => {
                 if (!draft.name.trim()) return alert("Введите название!");
+                setIsConfirmingSave(true);
+            };
+
+            const performSave = () => {
+                const now = new Date();
+                const dateStr = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()}`;
+                const currentUser = "Ivan_Ivanov"; 
+
+                const newDraft = {
+                    ...draft,
+                    lastEditedDate: dateStr,
+                    lastEditedBy: currentUser
+                };
+
                 if (selectedId) {
-                    setTemplates(templates.map(t => t.id === selectedId ? draft : t));
+                    setTemplates(templates.map(t => t.id === selectedId ? newDraft : t));
                 } else {
-                    setTemplates([...templates, { ...draft, id: Date.now() }]);
+                    setTemplates([...templates, { ...newDraft, id: Date.now() }]);
                 }
+                setIsConfirmingSave(false);
                 setScreen('MAIN_MENU');
             };
 
             const copy = () => {
                 const t = templates.find(x => x.id === selectedId);
                 if (t) {
-                    const newT = { ...t, id: Date.now(), name: `${t.name}_copy` };
+                    const newT = { 
+                        ...t, 
+                        id: Date.now(), 
+                        name: `${t.name} (Скопировано с ${t.name})`,
+                        lastEditedDate: t.lastEditedDate,
+                        lastEditedBy: t.lastEditedBy
+                    };
                     setTemplates([...templates, newT]);
                     setScreen('EDIT_LIST');
                 }
             };
 
-            const remove = () => {
+            const startRemove = () => {
+                if (!selectedId) return;
+                setIsConfirmingDelete(true);
+            };
+
+            const confirmRemove = () => {
                 setTemplates(templates.filter(t => t.id !== selectedId));
+                setIsConfirmingDelete(false);
                 setScreen('MAIN_MENU');
+            };
+
+            const openInputScreen = (field, label) => {
+                setInputContext({ field, label, value: draft[field] || '' });
+                setScreen('INPUT_DIALOG');
+            };
+
+            const confirmInput = () => {
+                let val = inputContext.value;
+                
+                // Обработка поиска команд
+                if (inputContext.field === 'search_query') {
+                    setScreen('ADD_COMMANDS_SEARCH_RESULT');
+                    return;
+                }
+
+                if (['points', 'reports', 'time'].includes(inputContext.field)) {
+                    val = parseInt(val) || 0;
+                }
+                setDraft({ ...draft, [inputContext.field]: val });
+                setScreen(selectedId ? 'EDIT_FORM' : 'CREATE_FORM');
             };
 
             return (
@@ -301,132 +490,288 @@
                     </div>
                     
                     <div className="samp-dialog-wrapper">
-                        <div className="samp-dialog">
-                            {screen === 'MAIN_MENU' && (
-                                <Fragment>
-                                    <div className="dialog-header">Управление шаблонами</div>
-                                    <div className="list-container">
-                                        <div className="list-item" onClick={() => { 
-                                            setDraft({ id: 0, name: '', accessLevel: 1, commands: ALL_COMMANDS.filter(c => c.minLevel <= 1).map(c => c.id) });
-                                            setSelectedId(null);
-                                            setScreen('CREATE_FORM');
-                                        }}>
-                                            <div className="list-index">1.</div>
-                                            <div className="list-content"><div className="list-label">Создание шаблона</div></div>
+                        {isConfirmingDelete ? (
+                            <div className="confirm-dialog">
+                                <div className="confirm-header">Удаление шаблона</div>
+                                <div className="confirm-body">
+                                    Вы подтверждаете, что хотите аннулировать шаблон<br/>
+                                    <b>{templates.find(t => t.id === selectedId)?.name}</b>?
+                                </div>
+                                <div className="confirm-footer">
+                                    <button className="confirm-btn yes" onClick={confirmRemove}>Да</button>
+                                    <button className="confirm-btn no" onClick={() => setIsConfirmingDelete(false)}>Нет</button>
+                                </div>
+                            </div>
+                        ) : isConfirmingSave ? (
+                            <div className="confirm-dialog">
+                                <div className="confirm-header">Сохранение шаблона</div>
+                                <div className="confirm-body">
+                                    Вы подтверждаете сохранение изменений в шаблоне<br/>
+                                    <b>{draft.name}</b>?
+                                </div>
+                                <div className="confirm-footer">
+                                    <button className="confirm-btn yes" onClick={performSave}>Да</button>
+                                    <button className="confirm-btn no" onClick={() => setIsConfirmingSave(false)}>Нет</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="samp-dialog">
+                                {screen === 'MAIN_MENU' && (
+                                    <Fragment>
+                                        <div className="dialog-header">Управление шаблонами</div>
+                                        <div className="list-container">
+                                            <div className="list-item" onClick={() => { 
+                                                setDraft({ ...EMPTY_DRAFT, commands: ALL_COMMANDS.filter(c => c.minLevel <= 1).map(c => c.id) });
+                                                setSelectedId(null);
+                                                setScreen('CREATE_FORM');
+                                            }}>
+                                                <div className="list-index">1.</div>
+                                                <div className="list-content"><div className="list-label">Создание шаблона</div></div>
+                                            </div>
+                                            <div className="list-item" onClick={() => setScreen('EDIT_LIST')}>
+                                                <div className="list-index">2.</div>
+                                                <div className="list-content"><div className="list-label">Редактирование шаблона</div></div>
+                                            </div>
+                                            <div className="list-item" onClick={() => setScreen('COPY_LIST')}>
+                                                <div className="list-index">3.</div>
+                                                <div className="list-content"><div className="list-label">Копирование шаблона</div></div>
+                                            </div>
+                                            <div className="list-item" onClick={() => setScreen('DELETE_LIST')}>
+                                                <div className="list-index">4.</div>
+                                                <div className="list-content"><div className="list-label">Удаление шаблона</div></div>
+                                            </div>
                                         </div>
-                                        <div className="list-item" onClick={() => setScreen('EDIT_LIST')}>
-                                            <div className="list-index">2.</div>
-                                            <div className="list-content"><div className="list-label">Редактирование шаблона</div></div>
+                                        <div className="dialog-footer">
+                                            <button className="action-btn secondary" onClick={() => {}}>Закрыть</button>
                                         </div>
-                                        <div className="list-item" onClick={() => setScreen('COPY_LIST')}>
-                                            <div className="list-index">3.</div>
-                                            <div className="list-content"><div className="list-label">Копирование шаблона</div></div>
-                                        </div>
-                                        <div className="list-item" onClick={() => setScreen('DELETE_LIST')}>
-                                            <div className="list-index">4.</div>
-                                            <div className="list-content"><div className="list-label">Удаление шаблона</div></div>
-                                        </div>
-                                    </div>
-                                    <div className="dialog-footer">
-                                        <button className="action-btn secondary" onClick={() => {}}>Закрыть</button>
-                                    </div>
-                                </Fragment>
-                            )}
+                                    </Fragment>
+                                )}
 
-                            {(screen === 'EDIT_LIST' || screen === 'COPY_LIST' || screen === 'DELETE_LIST') && (
-                                <Fragment>
-                                    <div className="dialog-header">Выбор шаблона</div>
-                                    <div className="list-container">
-                                        {templates.map((t, i) => (
-                                            <div key={t.id} className={`list-item ${selectedId === t.id ? 'selected' : ''}`} onClick={() => setSelectedId(t.id)}>
-                                                <div className="list-index">{i+1}.</div>
-                                                <div className="list-content">
-                                                    <div className="list-label">{t.name}</div>
-                                                    <div className="list-sublabel">Lvl: {t.accessLevel} | Cmds: {t.commands.length}</div>
+                                {(screen === 'EDIT_LIST' || screen === 'COPY_LIST' || screen === 'DELETE_LIST') && (
+                                    <Fragment>
+                                        <div className="dialog-header">Выбор шаблона</div>
+                                        <div className="list-container">
+                                            {templates.map((t, i) => (
+                                                <div key={t.id} className={`list-item ${selectedId === t.id ? 'selected' : ''}`} onClick={() => setSelectedId(t.id)}>
+                                                    <div className="list-index">{i+1}.</div>
+                                                    <div className="list-content">
+                                                        <div className="list-label">
+                                                            {t.name}
+                                                            <span className="points-tag">{t.points} Б.</span>
+                                                        </div>
+                                                        <div className="list-sublabel">Lvl: {t.accessLevel} | Cmds: {t.commands.length} | Rep: {t.reports} | Мин: {t.time}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="dialog-footer">
+                                            <button className={`action-btn ${screen === 'DELETE_LIST' ? 'danger' : 'primary'}`} onClick={() => {
+                                                if (!selectedId) return;
+                                                if (screen === 'EDIT_LIST') { setDraft(templates.find(x => x.id === selectedId)); setScreen('EDIT_FORM'); }
+                                                else if (screen === 'COPY_LIST') copy();
+                                                else startRemove();
+                                            }}>
+                                                {screen === 'DELETE_LIST' ? 'Удалить' : 'Выбрать'}
+                                            </button>
+                                            <button className="action-btn secondary" onClick={() => setScreen('MAIN_MENU')}>Назад</button>
+                                        </div>
+                                    </Fragment>
+                                )}
+
+                                {(screen === 'CREATE_FORM' || screen === 'EDIT_FORM') && (
+                                    <Fragment>
+                                        <div className="dialog-header">{screen === 'EDIT_FORM' ? 'Редактирование' : 'Создание'}</div>
+                                        <div className="form-container">
+                                            <div className="form-section-title">Основная информация</div>
+                                            <div className="list-item" onClick={() => openInputScreen('name', 'Введите название')}>
+                                                <div className="list-index">1.</div>
+                                                <div className="list-content"><div className="list-label">Название ({draft.name || 'не указано'})</div></div>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Уровень доступа (1-12):</label>
+                                                <div className="level-stepper">
+                                                    <button onClick={() => draft.accessLevel > 1 && handleLevelChange(draft.accessLevel - 1, screen === 'CREATE_FORM')}>&lt;</button>
+                                                    <span>{draft.accessLevel}</span>
+                                                    <button onClick={() => draft.accessLevel < 12 && handleLevelChange(draft.accessLevel + 1, screen === 'CREATE_FORM')}>&gt;</button>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="dialog-footer">
-                                        <button className={`action-btn ${screen === 'DELETE_LIST' ? 'danger' : 'primary'}`} onClick={() => {
-                                            if (!selectedId) return;
-                                            if (screen === 'EDIT_LIST') { setDraft(templates.find(x => x.id === selectedId)); setScreen('EDIT_FORM'); }
-                                            else if (screen === 'COPY_LIST') copy();
-                                            else remove();
-                                        }}>
-                                            {screen === 'DELETE_LIST' ? 'Удалить' : 'Выбрать'}
-                                        </button>
-                                        <button className="action-btn secondary" onClick={() => setScreen('MAIN_MENU')}>Назад</button>
-                                    </div>
-                                </Fragment>
-                            )}
 
-                            {(screen === 'CREATE_FORM' || screen === 'EDIT_FORM') && (
-                                <Fragment>
-                                    <div className="dialog-header">{screen === 'EDIT_FORM' ? 'Редактирование' : 'Создание'}</div>
-                                    <div className="form-container">
-                                        <div className="form-group">
-                                            <label>Название:</label>
-                                            <input className="samp-input" value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} placeholder="Название..." />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Уровень доступа (1-12):</label>
-                                            <div className="level-stepper">
-                                                <button onClick={() => draft.accessLevel > 1 && handleLevelChange(draft.accessLevel - 1, screen === 'CREATE_FORM')}>&lt;</button>
-                                                <span>{draft.accessLevel}</span>
-                                                <button onClick={() => draft.accessLevel < 12 && handleLevelChange(draft.accessLevel + 1, screen === 'CREATE_FORM')}>&gt;</button>
+                                            <div className="form-section-title">Установка норматива</div>
+                                            <div className="list-item" onClick={() => openInputScreen('points', 'Введите количество баллов')}>
+                                                <div className="list-index">2.</div>
+                                                <div className="list-content"><div className="list-label">Баллы за выполнение: {draft.points}</div></div>
+                                            </div>
+                                            <div className="list-item" onClick={() => openInputScreen('reports', 'Введите количество репортов')}>
+                                                <div className="list-index">3.</div>
+                                                <div className="list-content"><div className="list-label">Необходимо репортов: {draft.reports}</div></div>
+                                            </div>
+                                            <div className="list-item" onClick={() => openInputScreen('time', 'Введите время в минутах')}>
+                                                <div className="list-index">4.</div>
+                                                <div className="list-content"><div className="list-label">Необходимо пробыть в игре (минут): {draft.time}</div></div>
+                                            </div>
+                                            <div className="list-item" onClick={() => openInputScreen('x2Start', 'Дата начала X2 (ДД.ММ.ГГГГ)')}>
+                                                <div className="list-index">5.</div>
+                                                <div className="list-content"><div className="list-label">Дата начала X2: {draft.x2Start || '(не установлено)'}</div></div>
+                                            </div>
+                                            <div className="list-item" onClick={() => openInputScreen('x2End', 'Дата конца X2 (ДД.ММ.ГГГГ)')}>
+                                                <div className="list-index">6.</div>
+                                                <div className="list-content"><div className="list-label">Дата конца X2: {draft.x2End || '(не установлено)'}</div></div>
+                                            </div>
+
+                                            <div className="form-section-title">Команды</div>
+                                            <div className="list-item" onClick={() => setScreen('VIEW_COMMANDS')}>
+                                                <div className="list-index">7.</div>
+                                                <div className="list-content"><div className="list-label">Просмотр команд ({draft.commands.length})</div></div>
+                                            </div>
+                                            <div className="list-item" onClick={() => setScreen('ADD_COMMANDS_MENU')}>
+                                                <div className="list-index">8.</div>
+                                                <div className="list-content"><div className="list-label">Выбор команд</div></div>
+                                            </div>
+
+                                            <div style={{ marginTop: '15px', padding: '10px 15px', background: 'rgba(0,0,0,0.4)', borderRadius: '6px' }}>
+                                                <div style={{ fontSize: '0.9rem', color: '#ccc', marginBottom: '4px' }}>
+                                                    Последнее редактирование: <span style={{ color: 'var(--samp-highlight)', fontWeight: 'bold' }}>{draft.lastEditedDate || '-'}</span>
+                                                </div>
+                                                <div style={{ fontSize: '0.9rem', color: '#ccc' }}>
+                                                    Отредактировал: <span style={{ color: 'var(--samp-highlight)', fontWeight: 'bold' }}>{draft.lastEditedBy || '-'}</span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="list-item" onClick={() => setScreen('VIEW_COMMANDS')}>
-                                            <div className="list-index">1.</div>
-                                            <div className="list-content"><div className="list-label">Просмотр команд ({draft.commands.length})</div></div>
+                                        <div className="dialog-footer">
+                                            <button className="action-btn primary" onClick={initiateSave}>Сохранить</button>
+                                            <button className="action-btn secondary" onClick={() => setScreen('MAIN_MENU')}>Назад</button>
                                         </div>
-                                        <div className="list-item" onClick={() => setScreen('ADD_COMMANDS')}>
-                                            <div className="list-index">2.</div>
-                                            <div className="list-content"><div className="list-label">Добавить команду</div></div>
+                                    </Fragment>
+                                )}
+
+                                {screen === 'INPUT_DIALOG' && (
+                                    <Fragment>
+                                        <div className="dialog-header">Ввод значения</div>
+                                        <div className="form-container">
+                                            <div className="form-group">
+                                                <label>{inputContext.label}:</label>
+                                                <input 
+                                                    autoFocus
+                                                    className="samp-input" 
+                                                    value={inputContext.value} 
+                                                    onChange={e => setInputContext({...inputContext, value: e.target.value})}
+                                                    onKeyDown={e => e.key === 'Enter' && confirmInput()}
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="dialog-footer">
-                                        <button className="action-btn primary" onClick={save}>Сохранить</button>
-                                        <button className="action-btn secondary" onClick={() => setScreen('MAIN_MENU')}>Назад</button>
-                                    </div>
-                                </Fragment>
-                            )}
+                                        <div className="dialog-footer">
+                                            <button className="action-btn primary" onClick={confirmInput}>ОК</button>
+                                            <button className="action-btn secondary" onClick={() => setScreen(selectedId ? 'EDIT_FORM' : 'CREATE_FORM')}>Отмена</button>
+                                        </div>
+                                    </Fragment>
+                                )}
 
-                            {screen === 'VIEW_COMMANDS' && (
-                                <Fragment>
-                                    <div className="dialog-header">Команды в шаблоне</div>
-                                    <div className="list-container">
-                                        {draft.commands.map((cid, i) => (
-                                            <div key={cid} className="list-item" onClick={() => toggleCommand(cid)}>
-                                                <div className="list-index">{i+1}.</div>
-                                                <div className="list-content"><div className="list-label">{ALL_COMMANDS.find(x => x.id === cid)?.name || cid}</div></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="dialog-footer">
-                                        <button className="action-btn secondary" onClick={() => setScreen(selectedId ? 'EDIT_FORM' : 'CREATE_FORM')}>Назад</button>
-                                    </div>
-                                </Fragment>
-                            )}
+                                {screen === 'VIEW_COMMANDS' && (
+                                    <Fragment>
+                                        <div className="dialog-header">Команды в шаблоне</div>
+                                        <div className="list-container">
+                                            {draft.commands.map((cid, i) => {
+                                                const cmd = ALL_COMMANDS.find(x => x.id === cid);
+                                                return (
+                                                    <div key={cid} className="list-item" style={{cursor: 'default'}}>
+                                                        <div className="list-index">{i+1}.</div>
+                                                        <div className="list-content">
+                                                            <div className="list-label">
+                                                                {cmd?.name || cid}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {draft.commands.length === 0 && (
+                                                <div style={{padding: '20px', textAlign: 'center', color: '#888'}}>Нет команд</div>
+                                            )}
+                                        </div>
+                                        <div className="dialog-footer">
+                                            <button className="action-btn secondary" onClick={() => setScreen(selectedId ? 'EDIT_FORM' : 'CREATE_FORM')}>Назад</button>
+                                        </div>
+                                    </Fragment>
+                                )}
 
-                            {screen === 'ADD_COMMANDS' && (
-                                <Fragment>
-                                    <div className="dialog-header">Доступные команды</div>
-                                    <div className="list-container">
-                                        {ALL_COMMANDS.filter(c => !draft.commands.includes(c.id)).map((c, i) => (
-                                            <div key={c.id} className="list-item" onClick={() => toggleCommand(c.id)}>
-                                                <div className="list-index">{i+1}.</div>
-                                                <div className="list-content"><div className="list-label">{c.name} (Lvl {c.minLevel})</div></div>
+                                {screen === 'ADD_COMMANDS_MENU' && (
+                                    <Fragment>
+                                        <div className="dialog-header">Добавление команд</div>
+                                        <div className="list-container">
+                                            <div className="list-item" onClick={() => openInputScreen('search_query', 'Поиск команды')}>
+                                                <div className="list-index">1.</div>
+                                                <div className="list-content"><div className="list-label">Поиск по названию</div></div>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="dialog-footer">
-                                        <button className="action-btn secondary" onClick={() => setScreen(selectedId ? 'EDIT_FORM' : 'CREATE_FORM')}>Назад</button>
-                                    </div>
-                                </Fragment>
-                            )}
-                        </div>
+                                            <div className="list-item" onClick={() => setScreen('ADD_COMMANDS_LIST')}>
+                                                <div className="list-index">2.</div>
+                                                <div className="list-content"><div className="list-label">Весь список</div></div>
+                                            </div>
+                                        </div>
+                                        <div className="dialog-footer">
+                                            <button className="action-btn secondary" onClick={() => setScreen(selectedId ? 'EDIT_FORM' : 'CREATE_FORM')}>Назад</button>
+                                        </div>
+                                    </Fragment>
+                                )}
+
+                                {screen === 'ADD_COMMANDS_SEARCH_RESULT' && (
+                                    <Fragment>
+                                        <div className="dialog-header">Поиск: {inputContext.value}</div>
+                                        <div className="list-container">
+                                            {ALL_COMMANDS.filter(c => c.name.toLowerCase().includes(inputContext.value.toLowerCase())).map((c, i) => {
+                                                const isSelected = draft.commands.includes(c.id);
+                                                return (
+                                                    <div key={c.id} className={`list-item ${isSelected ? 'selected' : ''}`} onClick={() => toggleCommand(c.id)}>
+                                                        <div className="list-index">{i+1}.</div>
+                                                        <div className="list-content">
+                                                            <div className="list-label">
+                                                                {c.name} {isSelected ? 
+                                                                    <span className="indicator indicator-plus">[+]</span> : 
+                                                                    <span className="indicator indicator-minus">[-]</span>
+                                                                }
+                                                            </div>
+                                                            <div className="list-sublabel">Мин. уровень: {c.minLevel}</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {ALL_COMMANDS.filter(c => c.name.toLowerCase().includes(inputContext.value.toLowerCase())).length === 0 && (
+                                                <div style={{padding: '20px', textAlign: 'center', color: '#888'}}>Ничего не найдено</div>
+                                            )}
+                                        </div>
+                                        <div className="dialog-footer">
+                                            <button className="action-btn secondary" onClick={() => setScreen('ADD_COMMANDS_MENU')}>Назад</button>
+                                        </div>
+                                    </Fragment>
+                                )}
+
+                                {screen === 'ADD_COMMANDS_LIST' && (
+                                    <Fragment>
+                                        <div className="dialog-header">Выбор доступных команд</div>
+                                        <div className="list-container">
+                                            {ALL_COMMANDS.map((c, i) => {
+                                                const isSelected = draft.commands.includes(c.id);
+                                                return (
+                                                    <div key={c.id} className={`list-item ${isSelected ? 'selected' : ''}`} onClick={() => toggleCommand(c.id)}>
+                                                        <div className="list-index">{i+1}.</div>
+                                                        <div className="list-content">
+                                                            <div className="list-label">
+                                                                {c.name} {isSelected ? 
+                                                                    <span className="indicator indicator-plus">[+]</span> : 
+                                                                    <span className="indicator indicator-minus">[-]</span>
+                                                                }
+                                                            </div>
+                                                            <div className="list-sublabel">Мин. уровень: {c.minLevel}</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="dialog-footer">
+                                            <button className="action-btn secondary" onClick={() => setScreen('ADD_COMMANDS_MENU')}>Назад</button>
+                                        </div>
+                                    </Fragment>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             );
